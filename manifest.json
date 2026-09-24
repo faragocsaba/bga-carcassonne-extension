@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "BGA Carcassonne Tile Counter",
+  "version": "1.6",
+  "description": "Valós idejű Carcassonne maradvány-lapka számláló képekkel a Board Game Arena felületéhez.",
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.boardgamearena.com/*",
+        "*://boardgamearena.com/*",
+        "*://*.boardgamearena.net/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["tiles/*.png"],
+      "matches": [
+        "*://*.boardgamearena.com/*",
+        "*://boardgamearena.com/*",
+        "*://*.boardgamearena.net/*"
+      ]
+    }
+  ]
+}

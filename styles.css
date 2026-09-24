@@ -1,0 +1,104 @@
+#bga-carcassonne-counter-panel {
+  position: fixed;
+  top: 70px;
+  left: 15px;
+  z-index: 999999;
+  background-color: #ffffff;
+  border: 2px solid #1e293b;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  width: 290px;
+  overflow: hidden;
+}
+
+#bga-counter-header {
+  background-color: #1e293b;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+#bga-counter-content {
+  padding: 8px;
+}
+
+/* Vizuális lapkarács */
+.bga-tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.bga-tile-card {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bga-tile-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Elfogogyott lapka szürkítése */
+.bga-tile-card.out-of-stock {
+  opacity: 0.35;
+  filter: grayscale(100%);
+}
+
+/* Maradvány számláló badge a lapka sarkában */
+.bga-tile-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.bga-tile-card.out-of-stock .bga-tile-badge {
+  background-color: #64748b;
+}
+
+/* Alsó összegző sáv */
+.bga-summary-bar {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: bold;
+  color: #1e293b;
+  border-top: 1px solid #cbd5e1;
+}
+
+.bga-summary-rem {
+  color: #2563eb;
+}
+
+.bga-summary-out {
+  color: #dc2626;
+}
