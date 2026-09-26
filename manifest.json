@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "BGA Carcassonne Tile Counter",
   "version": "1.6",
-  "description": "Valós idejű Carcassonne maradvány-lapka számláló képekkel a Board Game Arena felületéhez.",
+  "description": "Real-time Carcassonne tile counter with images for the Board Game Arena interface.",
   "content_scripts": [
     {
       "matches": [
