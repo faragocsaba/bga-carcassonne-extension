@@ -135,6 +135,8 @@ function parseSpriteIndex(bgPosStr, el) {
   if (pxMatch) {
     const x = Math.abs(parseFloat(pxMatch[1]));
     const y = Math.abs(parseFloat(pxMatch[2]));
+    
+    // Ha a naplóban lévő ikon le van kicsinyítve, az elem tényleges szélességét használjuk
     const tileSize = (el && el.offsetWidth > 0) ? el.offsetWidth : 88;
 
     const col = Math.round(x / tileSize);
@@ -151,34 +153,51 @@ function scheduleCalculation() {
   calculationTimer = setTimeout(extractAndCalculateTiles, 200);
 }
 
-// Kiesett / Eldobott lapkák kigyűjtése a játéknaplóból
+// Kiesett / Eldobott lapkák kigyűjtése a játéknaplóból (Fejlesztett, többnyelvű detektálás)
 function getDiscardedTileCounts(doc) {
   const discardedCounts = {};
-  const logsContainer = doc.getElementById("logs") || doc.getElementById("gamelog");
-  if (!logsContainer) return discardedCounts;
+  
+  // Minden lehetséges BGA naplókonténert megkeresünk
+  const logContainers = [
+    doc.getElementById("logs"),
+    doc.getElementById("gamelog"),
+    doc.getElementById("logs_wrap"),
+    doc.querySelector(".gamelog_review")
+  ].filter(Boolean);
 
-  const logEntries = logsContainer.querySelectorAll(".logentry, .gamelogreview_log");
-  logEntries.forEach(entry => {
-    const text = entry.innerText ? entry.innerText.toLowerCase() : "";
-    const isDiscardLog = text.includes("cannot be placed") || 
-                          text.includes("discard") || 
-                          text.includes("nem helyezhető") ||
-                          text.includes("kiesett") ||
-                          entry.querySelector(".log_discard");
+  if (logContainers.length === 0) return discardedCounts;
 
-    if (isDiscardLog) {
-      const tileEl = entry.querySelector(".tile_art, [class*='tile_art']");
-      if (tileEl) {
-        const computedStyle = doc.defaultView.getComputedStyle(tileEl);
-        const bgPos = tileEl.style.backgroundPosition || computedStyle.backgroundPosition;
-        const tileIndex = parseSpriteIndex(bgPos, tileEl);
+  const discardKeywords = [
+    "cannot place", "cannot be placed", "discard", "no valid position", "no space",
+    "nem helyezhető", "nem tudja lehelyezni", "eldob", "kiesett",
+    "keine möglichkeit", "impossible de poser"
+  ];
 
-        if (tileIndex !== null && BGA_TILE_INDEX_TO_CODE.hasOwnProperty(tileIndex)) {
-          const code = BGA_TILE_INDEX_TO_CODE[tileIndex];
-          discardedCounts[code] = (discardedCounts[code] || 0) + 1;
+  logContainers.forEach(container => {
+    const logEntries = container.querySelectorAll(".logentry, .gamelogreview_log, .log, .roundedbox, [class*='logentry']");
+    
+    logEntries.forEach(entry => {
+      const text = (entry.innerText || entry.textContent || "").toLowerCase();
+      const isDiscardLog = discardKeywords.some(keyword => text.includes(keyword)) ||
+                            entry.querySelector(".log_discard") !== null ||
+                            entry.classList.contains("log_discard");
+
+      if (isDiscardLog) {
+        // A naplóbejegyzésen belüli csempe/kép megkeresése
+        const tileEl = entry.querySelector(".tile_art, [class*='tile_art'], .carcassonne_tile, [style*='background']");
+        if (tileEl) {
+          const computedStyle = doc.defaultView ? doc.defaultView.getComputedStyle(tileEl) : null;
+          const bgPos = tileEl.style.backgroundPosition || (computedStyle ? computedStyle.backgroundPosition : "");
+
+          const tileIndex = parseSpriteIndex(bgPos, tileEl);
+
+          if (tileIndex !== null && BGA_TILE_INDEX_TO_CODE.hasOwnProperty(tileIndex)) {
+            const code = BGA_TILE_INDEX_TO_CODE[tileIndex];
+            discardedCounts[code] = (discardedCounts[code] || 0) + 1;
+          }
         }
       }
-    }
+    });
   });
 
   return discardedCounts;
@@ -277,9 +296,11 @@ function checkAndInitInFrame() {
     if (!activeObserver) {
       activeObserver = new doc.defaultView.MutationObserver(() => scheduleCalculation());
       
+      // Tábla változásainak figyelése
       activeObserver.observe(container, { childList: true, subtree: true, attributes: true });
       
-      const logsContainer = doc.getElementById("logs") || doc.getElementById("gamelog");
+      // Naplókonténerek változásainak figyelése
+      const logsContainer = doc.getElementById("logs") || doc.getElementById("gamelog") || doc.getElementById("logs_wrap");
       if (logsContainer) {
         activeObserver.observe(logsContainer, { childList: true, subtree: true });
       }
