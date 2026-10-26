@@ -76,6 +76,20 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+.bga-tile-discarded-badge {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  line-height: 1.2;
+}
+
 .bga-tile-card.out-of-stock .bga-tile-badge {
   background-color: #64748b;
 }
@@ -99,4 +113,9 @@
 
 .bga-summary-out {
   color: #dc2626;
+}
+
+.bga-summary-disc {
+  color: #ef4444;
+  font-size: 11px;
 }

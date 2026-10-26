@@ -105,7 +105,6 @@ function createFloatingPanel(targetDoc) {
   });
 
   header.addEventListener("click", () => {
-    // Ha mozgatás történt, ne váltson át nyitott/csukott állapotra
     if (hasMoved) return;
 
     if (content.style.display === "none") {
@@ -152,10 +151,44 @@ function scheduleCalculation() {
   calculationTimer = setTimeout(extractAndCalculateTiles, 200);
 }
 
+// Kiesett / Eldobott lapkák kigyűjtése a játéknaplóból
+function getDiscardedTileCounts(doc) {
+  const discardedCounts = {};
+  const logsContainer = doc.getElementById("logs") || doc.getElementById("gamelog");
+  if (!logsContainer) return discardedCounts;
+
+  const logEntries = logsContainer.querySelectorAll(".logentry, .gamelogreview_log");
+  logEntries.forEach(entry => {
+    const text = entry.innerText ? entry.innerText.toLowerCase() : "";
+    const isDiscardLog = text.includes("cannot be placed") || 
+                          text.includes("discard") || 
+                          text.includes("nem helyezhető") ||
+                          text.includes("kiesett") ||
+                          entry.querySelector(".log_discard");
+
+    if (isDiscardLog) {
+      const tileEl = entry.querySelector(".tile_art, [class*='tile_art']");
+      if (tileEl) {
+        const computedStyle = doc.defaultView.getComputedStyle(tileEl);
+        const bgPos = tileEl.style.backgroundPosition || computedStyle.backgroundPosition;
+        const tileIndex = parseSpriteIndex(bgPos, tileEl);
+
+        if (tileIndex !== null && BGA_TILE_INDEX_TO_CODE.hasOwnProperty(tileIndex)) {
+          const code = BGA_TILE_INDEX_TO_CODE[tileIndex];
+          discardedCounts[code] = (discardedCounts[code] || 0) + 1;
+        }
+      }
+    }
+  });
+
+  return discardedCounts;
+}
+
 function extractAndCalculateTiles() {
   const { doc, container } = getGameContext();
   if (!container) return;
 
+  // 1. Táblán lévő kijátszott lapkák
   const rawElements = Array.from(container.querySelectorAll(".tile_art, [id^='tile_art_']"));
   
   const uniqueTilesMap = new Map();
@@ -181,10 +214,17 @@ function extractAndCalculateTiles() {
     }
   });
 
-  renderVisualGrid(doc, playedCounts, totalPlayedCount);
+  // 2. Játéknaplóban lévő kiesett/eldobott lapkák
+  const discardedCounts = getDiscardedTileCounts(doc);
+  let totalDiscardedCount = 0;
+  for (const count of Object.values(discardedCounts)) {
+    totalDiscardedCount += count;
+  }
+
+  renderVisualGrid(doc, playedCounts, discardedCounts, totalPlayedCount, totalDiscardedCount);
 }
 
-function renderVisualGrid(doc, playedCounts, totalPlayed) {
+function renderVisualGrid(doc, playedCounts, discardedCounts, totalPlayed, totalDiscarded) {
   const wrapper = doc.getElementById("bga-counter-table-wrapper");
   if (!wrapper) return;
 
@@ -194,7 +234,9 @@ function renderVisualGrid(doc, playedCounts, totalPlayed) {
 
   for (const [code, originalCount] of Object.entries(ORIGINAL_SET_COMPOSITION)) {
     const played = playedCounts[code] || 0;
-    const remaining = originalCount - played;
+    const discarded = discardedCounts[code] || 0;
+    const totalUsed = played + discarded;
+    const remaining = originalCount - totalUsed;
 
     totalSet += originalCount;
     totalRemaining += remaining;
@@ -203,9 +245,10 @@ function renderVisualGrid(doc, playedCounts, totalPlayed) {
     const isOutOfStock = remaining <= 0;
 
     gridHtml += `
-      <div class="bga-tile-card ${isOutOfStock ? 'out-of-stock' : ''}" title="${code} (Kint: ${played} / Össz: ${originalCount})">
+      <div class="bga-tile-card ${isOutOfStock ? 'out-of-stock' : ''}" title="${code} (Táblán: ${played} | Kiesett: ${discarded} | Össz: ${originalCount})">
         <img src="${imageUrl}" alt="${code}" />
-        <div class="bga-tile-badge">${remaining}</div>
+        <div class="bga-tile-badge" title="Még húzható">${remaining}</div>
+        ${discarded > 0 ? `<div class="bga-tile-discarded-badge" title="Kiesett: ${discarded}">🗑️ ${discarded}</div>` : ''}
       </div>
     `;
   }
@@ -215,7 +258,7 @@ function renderVisualGrid(doc, playedCounts, totalPlayed) {
   // Alsó összesítő sáv
   gridHtml += `
     <div class="bga-summary-bar">
-      <span>Kint: <span class="bga-summary-out">${totalPlayed}</span></span>
+      <span>Kint: <span class="bga-summary-out">${totalPlayed}</span>${totalDiscarded > 0 ? ` <span class="bga-summary-disc">(🗑️${totalDiscarded})</span>` : ''}</span>
       <span>Maradt: <span class="bga-summary-rem">${totalRemaining}</span> / ${totalSet}</span>
     </div>
   `;
@@ -233,7 +276,13 @@ function checkAndInitInFrame() {
 
     if (!activeObserver) {
       activeObserver = new doc.defaultView.MutationObserver(() => scheduleCalculation());
+      
       activeObserver.observe(container, { childList: true, subtree: true, attributes: true });
+      
+      const logsContainer = doc.getElementById("logs") || doc.getElementById("gamelog");
+      if (logsContainer) {
+        activeObserver.observe(logsContainer, { childList: true, subtree: true });
+      }
     }
   } else {
     const panel = doc.getElementById("bga-carcassonne-counter-panel");
