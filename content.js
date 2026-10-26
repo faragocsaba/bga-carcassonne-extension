@@ -58,7 +58,56 @@ function createFloatingPanel(targetDoc) {
   const content = targetDoc.getElementById("bga-counter-content");
   const toggle = targetDoc.getElementById("bga-counter-toggle");
 
+  // Áthelyezhetőség (Drag and Drop)
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let initialLeft = 0;
+  let initialTop = 0;
+  let hasMoved = false;
+
+  header.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    hasMoved = false;
+    startX = e.clientX;
+    startY = e.clientY;
+
+    const rect = panel.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    panel.style.left = `${initialLeft}px`;
+    panel.style.top = `${initialTop}px`;
+
+    const onMouseMove = (moveEvent) => {
+      if (!isDragging) return;
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasMoved = true;
+      }
+
+      panel.style.left = `${initialLeft + dx}px`;
+      panel.style.top = `${initialTop + dy}px`;
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+      targetDoc.removeEventListener("mousemove", onMouseMove);
+      targetDoc.removeEventListener("mouseup", onMouseUp);
+    };
+
+    targetDoc.addEventListener("mousemove", onMouseMove);
+    targetDoc.addEventListener("mouseup", onMouseUp);
+  });
+
   header.addEventListener("click", () => {
+    // Ha mozgatás történt, ne váltson át nyitott/csukott állapotra
+    if (hasMoved) return;
+
     if (content.style.display === "none") {
       content.style.display = "block";
       toggle.innerText = "▼";

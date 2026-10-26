@@ -21,7 +21,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: pointer;
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #bga-counter-content {
